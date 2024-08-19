@@ -1,23 +1,25 @@
-from dotenv import load_dotenv
-load_dotenv()
+import os
+import toml
 
 from langchain_openai import ChatOpenAI
 from langchain import hub
 from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain.agents import create_tool_calling_agent, create_structured_chat_agent
+from langchain.agents import create_tool_calling_agent
 from langchain.agents import AgentExecutor
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain.callbacks.tracers import ConsoleCallbackHandler
-from langchain_core.callbacks import BaseCallbackHandler
+from langchain.schema import HumanMessage, AIMessage, SystemMessage  # Import message classes
+from langchain_core.callbacks import BaseCallbackHandler  # Ensure this import is included
 
 import streamlit as st
-from langchain_community.callbacks.streamlit import (
-    StreamlitCallbackHandler,
-)
+from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
 
-st.set_page_config(page_title="HYVE AutoInno Pipeline", page_icon="bee",)
+class MyCustomHandler(BaseCallbackHandler):
+    def on_chain_start(self, serialized, inputs, **kwargs):
+        st.info("chain started")
+
+st.set_page_config(page_title="HYVE AutoInno Pipeline", page_icon="bee")
 
 hide_st_style = """
     <style>    
@@ -29,108 +31,145 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 
 st_callback = StreamlitCallbackHandler(st.container())
 
+# Load config and set environment variable for Tavily API key
+config = toml.load("config.toml")
+os.environ['TAVILY_API_KEY'] = config['Tavily']['api_key']
 
+# Session state handling for API key
+if 'api_key_submitted' not in st.session_state:
+    st.session_state['api_key_submitted'] = False
 
+if not st.session_state['api_key_submitted']:
+    api_key = st.text_input("Enter your OpenAI API Key:", type="password", value="")
+    submit_key = st.button("Submit API Key")
 
-from langchain.schema import HumanMessage, AIMessage, SystemMessage  # Import message classes
+    if submit_key and api_key:
+        st.session_state['api_key'] = api_key
+        st.session_state['api_key_submitted'] = True
+        st.rerun()  # Rerun the app to reflect the state change
 
+if 'api_key' in st.session_state:
 
+    # Initialize LLM and agents
+    llm = ChatOpenAI(api_key=st.session_state['api_key'], model="gpt-3.5-turbo-0125", temperature=0)
+    search = TavilySearchResults()
+    tools = [search]
+    prompt = hub.pull("hwchase17/openai-functions-agent")
+    research_agent = create_tool_calling_agent(llm, tools, prompt)
+    agent_executor = AgentExecutor(agent=research_agent, tools=tools, verbose=True, handle_parsing_errors=True)
 
-from langchain.globals import set_debug
+    default_system_messages = [
+        "You are an AI specialized in innovation processes. Your task is to guide through the entire innovation process from research to concept creation. You are equipped with a search tool. You conclude every task by suggesting a next step. The user input an innovation challenge:",
+        "Start with 1.1 researching trends in the given field and format the results as a table.",
+        "Then proceed with 1.2 researching products and competitors in the given field and format the results as a table.",
+        "1.3 research painpoints for each of the relevant products and format the results as a table. Use product reviews and Reddit for this research.",
+        "Next, 2.1 evaluate the painpoints by impact.",
+        "2.2 for the top 5 painpoints, define a How Might We Statement.",
+        "Then, 3.1 dive into ideation and suggest 10 ideas for each painpoint using ideation methods like SCAMPER, TRIZ, and analogy thinking.",
+        "3.2 Evaluate the ideas by potential and effort and format the results in a table.",
+        "For the top idea, 4.1 create a persona.",
+        "4.2 Create a concept description mentioning the target group, value, and idea description.",
+        "4.3 Suggest a roadmap for next steps including advice on how to prototype and test the idea.",
+        "Then, 5.1 generate a briefing for another AI system to generate a web application that prototypes the core functionality of the top idea. format the briefing as code"        
+    ]
+    
+    if 'system_messages' not in st.session_state:
+        st.session_state['system_messages'] = default_system_messages
+        st.session_state['current_prompt_index'] = 0  # Initialize prompt index
+        st.session_state['initial_input_added'] = False  # Track if user input was added to the first message
+        st.session_state['chat_history'] = []  # Initialize chat history
 
-# set_debug(True)
+    chat_history = [
+        SystemMessage(content=msg) for msg in st.session_state['system_messages']
+    ]
+    chat_history.extend([
+        HumanMessage(content="You are my innovation expert. I will give you a topic and you will conduct the entire innovation process from user, trend and tech research to ideation and concept creation."),
+        AIMessage(content="Now provide your topic so I can dive into the research!")
+    ])
 
-class MyCustomHandler(BaseCallbackHandler):
+    message_history = ChatMessageHistory()
+    message_history.messages = chat_history
 
-    def on_chain_start(self, serialized, inputs, **kwargs):
-        st.info("chain started")
-
-
-llm = ChatOpenAI(model="gpt-3.5-turbo-0125", temperature=0)
-
-search = TavilySearchResults()
-tools = [search]
-prompt = hub.pull("hwchase17/openai-functions-agent")
-research_agent = create_tool_calling_agent(llm, tools, prompt)
-
-# tools = [TavilySearchResults(max_results=1)]
-# prompt = hub.pull("hwchase17/structured-chat-agent")
-# research_agent = create_structured_chat_agent(llm, tools, prompt)
-
-
-agent_executor = AgentExecutor(agent=research_agent, tools=tools, verbose=True, handle_parsing_errors=True)
-
-
-
-chat_history = [
-    SystemMessage(content="You are an AI specialized in innovation processes. Your task is to guide through the entire innovation process from research to concept creation."),
-    SystemMessage(content="You are equipped with a search tool."),
-    SystemMessage(content="You conclude every task by suggesting a next step. For this consider the following process."),
-    SystemMessage(content="Start with 1.1 researching trends in the given field and format the results as a table. Then proceed with 1.2 researching products and competitors in the given field and format the results as a table. Finally, for this step, 1.3 research painpoints for each of the relevant products and format the results as a table. Use product reviews and Reddit for this research."),
-    SystemMessage(content="Next, 2.1 evaluate the painpoints by impact. 2.2 for the top 5 painpoints, define a How Might We Statement."),
-    SystemMessage(content="Then, 3.1 dive into ideation and suggest 10 ideas for each painpoint using ideation methods like SCAMPER, TRIZ, and analogy thinking. 3.2 Evaluate the ideas by potential and effort and format the results in a table."),
-    SystemMessage(content="For the top idea, 4.1 create a persona. 4.2 Create a concept description mentioning the target group, value, and idea description. 4.3 Suggest a roadmap for next steps including advice on how to prototype and test the idea."),
-    SystemMessage(content="Then, 5.1 generate a briefing for another AI system to generate a web application that prototypes the core functionality of the top idea. format the briefing as code"),
-    SystemMessage(content="Walk through this process step by step, first planning the action, then executing it, and always finish your answer by suggesting a next step!"),
-    HumanMessage(content="You are my innovation expert. I will give you a topic and you will conduct the entire innovation process from user, trend and tech research to ideation and concept creation."),
-    AIMessage(content="Now provide your topic so I can dive into the research!")
-]
-
-message_history = ChatMessageHistory()
-message_history.messages = chat_history
-
-
-agent_with_chat_history = RunnableWithMessageHistory(    
-    agent_executor,        
-    lambda session_id: message_history,
-    input_messages_key="input",
-    history_messages_key="chat_history",
-)
-
-
-
-
-st.title('🐝 HYVE AutoInno Pipeline')
-
-with st.form('my_form'):
-    initial_input = st.text_area('Enter your Innovation Challenge:', 'next generation of tooth brushes')
-    iterations = st.number_input(label = 'iterations', min_value=0, max_value=None, value=3, step=1)
-    submitted = st.form_submit_button('Submit')
-
-if submitted:
-    # Define a global variable for result
-    result = agent_with_chat_history.invoke(
-        {"chat_history": chat_history, "input": initial_input},
-        config={"configurable": {"session_id": "<foo>"},"callbacks":[st_callback]}
+    agent_with_chat_history = RunnableWithMessageHistory(
+        agent_executor,
+        lambda session_id: message_history,
+        input_messages_key="input",
+        history_messages_key="chat_history",
     )
 
-    # st.info(result.get('output'))
-    with st.chat_message("assistant"):
-        st.write(result.get('output'))
+    st.title('🐝 HYVE AutoInno Pipeline')
 
+    # Toggle to show/hide the message editing menu
+    if 'edit_menu' not in st.session_state:
+        st.session_state['edit_menu'] = False
 
-    counter = 0
+    if st.button("Edit prompts"):
+        st.session_state['edit_menu'] = not st.session_state['edit_menu']
 
-    while counter < iterations:
-        output = result.get('output')
-        if isinstance(output, str):
-            new_input = output
-        else:
-            new_input = str(output)
-        # Invoke the agent with the updated result
-        result = agent_with_chat_history.invoke(
-            # {"input": "suggest and execute a next steps based on your processes and the previous outcome: " + new_input},
-            {"input": "execute the next step based on your processes and the previous outcome! Finish with suggesting a following next step. This needs to be different from your previous job to avoid getting stuck in a loop."},
-            config={"configurable": {"session_id": "<foo>"},"callbacks":[st_callback]}
-        )
-        with st.chat_message("assistant"):
-            st.write(result.get('output'))
-        counter += 1
+    if st.session_state['edit_menu']:
+        st.subheader("Edit System Messages")
 
-    st.success("Innovation project executed!")
+        for i, message in enumerate(st.session_state['system_messages']):
+            st.session_state['system_messages'][i] = st.text_area(f"Message {i + 1}", message, key=f"msg_{i}")
 
-    # Print final result
-    # print(result)
+        if st.button("Add New Message"):
+            st.session_state['system_messages'].append("")
+            st.rerun()  # Rerun the app to reflect the state change
 
+        if st.button("Remove Last Message"):
+            if st.session_state['system_messages']:
+                st.session_state['system_messages'].pop()
+                st.rerun()  # Rerun the app to reflect the state change
 
+        if st.button("Update Messages"):
+            st.success("System messages updated successfully!")     
+            st.session_state['edit_menu'] = False
+            st.rerun()  # Rerun the app to reflect the state change
 
+    # Form to enter the initial challenge
+    with st.form('my_form'):
+        initial_input = st.text_area('Enter your Innovation Challenge:', 'next generation of tooth brushes')
+        submitted = st.form_submit_button('Submit')
+
+    if submitted:
+        st.session_state['current_prompt_index'] = 0  # Reset prompt index on new submission
+        st.session_state['initial_input'] = initial_input  # Store the initial input
+        st.session_state['process_started'] = True  # Indicate that the process should start
+        st.session_state['initial_input_added'] = False  # Reset the flag to ensure user input is added only once
+        st.session_state['chat_history'] = []  # Reset chat history on new input
+        st.rerun()  # Rerun the app to reflect the new input
+
+    # Process prompts one by one if the process has started
+    if st.session_state.get('process_started', False):
+
+        # Add the user input to the first system message only once
+        if not st.session_state['initial_input_added']:
+            st.session_state['system_messages'][0] += f" {st.session_state['initial_input']}"
+            st.session_state['initial_input_added'] = True
+
+        message_history = ChatMessageHistory()
+
+        for current_prompt in st.session_state['system_messages']:
+            message_history.messages.append(SystemMessage(content=current_prompt))
+            
+            st.info(f"Executing: {current_prompt}")
+
+            agent_with_chat_history = RunnableWithMessageHistory(
+                agent_executor,
+                lambda session_id: message_history,
+                input_messages_key="input",
+                history_messages_key="chat_history",
+            )
+
+            result = agent_with_chat_history.invoke(
+                {"chat_history": message_history.messages, "input": current_prompt},
+                config={"configurable": {"session_id": "<foo>"},"callbacks":[st_callback]}
+            )
+
+            with st.chat_message("assistant"):
+                st.write(result.get('output'))
+
+        st.success("Innovation project executed!")
+
+else:
+    st.warning("Please enter your OpenAI API Key to proceed.")
