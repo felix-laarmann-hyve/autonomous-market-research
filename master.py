@@ -107,7 +107,7 @@ if 'api_key' in st.session_state:
     if 'edit_menu' not in st.session_state:
         st.session_state['edit_menu'] = False
 
-    if st.button("Edit prompts"):
+    if st.button("Setup agent"):
         st.session_state['edit_menu'] = not st.session_state['edit_menu']
 
     if st.session_state['edit_menu']:
