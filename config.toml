@@ -1,3 +1,4 @@
+[Langchain]
 LANGCHAIN_TRACING_V2="true"
 LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
 LANGCHAIN_API_KEY="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"
