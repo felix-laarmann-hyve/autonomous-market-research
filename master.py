@@ -63,7 +63,7 @@ if 'api_key' in st.session_state:
     agent_executor = AgentExecutor(agent=research_agent, tools=tools, verbose=True, handle_parsing_errors=True)
 
     default_system_messages = [
-        "You are an AI specialized in innovation processes. Your task is to guide through the entire innovation process from research to concept creation. You are equipped with a search tool. You conclude every task by suggesting a next step. The user input an innovation challenge:",
+        "You are an AI specialized in innovation processes for products and services. Your task is to guide through the entire innovation process from research to concept creation. You are equipped with a search tool. You conclude every task by suggesting a next step. The user inputs an innovation challenge:",
         "Start with 1.1 researching trends in the given field and format the results as a table.",
         "Then proceed with 1.2 researching products and competitors in the given field and format the results as a table.",
         "1.3 research painpoints for each of the relevant products and format the results as a table. Use product reviews and Reddit for this research.",
@@ -74,7 +74,7 @@ if 'api_key' in st.session_state:
         "For the top idea, 4.1 create a persona.",
         "4.2 Create a concept description mentioning the target group, value, and idea description.",
         "4.3 Suggest a roadmap for next steps including advice on how to prototype and test the idea.",
-        "Then, 5.1 generate a briefing for another AI system to generate a web application that prototypes the core functionality of the top idea. format the briefing as code"        
+        "Finally, 5.1 generate a briefing of the most promising idea. This briefing should outline the core concept and features to generate a web application. Please provide your output as code with no more than 400 words, following this structure: Hey Claude, based on the following briefing, create a React webpage. The webpage should have exceptional visual design using glassmorphic design, outstanding aesthetics, a modern color scheme and mind-blowing animations. Implement a top menu bar to navigate between the subpages. Briefing: [Paste Briefing here]"
     ]
     
     if 'system_messages' not in st.session_state:
@@ -132,7 +132,7 @@ if 'api_key' in st.session_state:
 
     # Form to enter the initial challenge
     with st.form('my_form'):
-        initial_input = st.text_area('Enter your Innovation Challenge:', 'next generation of tooth brushes')
+        initial_input = st.text_area('Enter your Innovation Challenge:', 'future digital services in automotive')
         submitted = st.form_submit_button('Submit')
 
     if submitted:
