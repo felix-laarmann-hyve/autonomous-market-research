@@ -116,5 +116,3 @@ frontend/cypress/snapshots/linux/1x
 
 
 *.env
-
-config.toml
