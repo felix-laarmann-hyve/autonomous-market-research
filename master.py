@@ -32,12 +32,11 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 st_callback = StreamlitCallbackHandler(st.container())
 
 # Load config and set environment variable for Tavily API key
-config = toml.load("config.toml")
-os.environ['TAVILY_API_KEY'] = config['Tavily']['api_key']
-os.environ['LANGCHAIN_TRACING_V2'] = config['Langchain']['LANGCHAIN_TRACING_V2']
-os.environ['LANGCHAIN_API_KEY'] = config['Langchain']['LANGCHAIN_API_KEY']
-os.environ['LANGCHAIN_ENDPOINT'] = config['Langchain']['LANGCHAIN_ENDPOINT']
-os.environ['LANGCHAIN_PROJECT'] = config['Langchain']['LANGCHAIN_PROJECT']
+os.environ['TAVILY_API_KEY'] = st.secrets["Tavily"]["api_key"]
+os.environ['LANGCHAIN_TRACING_V2'] = st.secrets["Langchain"]["LANGCHAIN_TRACING_V2"]
+os.environ['LANGCHAIN_API_KEY'] = st.secrets["Langchain"]["LANGCHAIN_API_KEY"]
+os.environ['LANGCHAIN_ENDPOINT'] = st.secrets["Langchain"]["LANGCHAIN_ENDPOINT"]
+os.environ['LANGCHAIN_PROJECT'] = st.secrets["Langchain"]["LANGCHAIN_PROJECT"]
 
 # Session state handling for API key
 if 'api_key_submitted' not in st.session_state:
