@@ -19,7 +19,7 @@ class MyCustomHandler(BaseCallbackHandler):
     def on_chain_start(self, serialized, inputs, **kwargs):
         st.info("chain started")
 
-st.set_page_config(page_title="HYVE AutoInno Pipeline", page_icon="bee")
+st.set_page_config(page_title="HYVE Auto-Market-Research Pipeline", page_icon="bee")
 
 hide_st_style = """
     <style>    
@@ -100,7 +100,7 @@ if 'api_key' in st.session_state:
         history_messages_key="chat_history",
     )
 
-    st.title('🐝 HYVE AutoInno Pipeline')
+    st.title('🐝 HYVE Auto-Market-Research Pipeline')
 
     # Toggle to show/hide the message editing menu
     if 'edit_menu' not in st.session_state:
@@ -131,7 +131,7 @@ if 'api_key' in st.session_state:
 
     # Form to enter the initial challenge
     with st.form('my_form'):
-        initial_input = st.text_area('Enter your Innovation Challenge:', 'future digital services in automotive')
+        initial_input = st.text_area('Enter your research field:', 'digital payment solutions')
         submitted = st.form_submit_button('Submit')
 
     if submitted:
@@ -172,7 +172,7 @@ if 'api_key' in st.session_state:
             with st.chat_message("assistant"):
                 st.write(result.get('output'))
 
-        st.success("Innovation project executed!")
+        st.success("Market research executed!")
 
 else:
     st.warning("Please enter your OpenAI API Key to proceed.")
