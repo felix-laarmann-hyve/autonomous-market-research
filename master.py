@@ -54,7 +54,7 @@ if not st.session_state['api_key_submitted']:
 if 'api_key' in st.session_state:
 
     # Initialize LLM and agents
-    llm = ChatOpenAI(api_key=st.session_state['api_key'], model="gpt-3.5-turbo-0125", temperature=0)
+    llm = ChatOpenAI(api_key=st.session_state['api_key'], model="gpt-4o-mini", temperature=0)
     search = TavilySearchResults()
     tools = [search]
     prompt = hub.pull("hwchase17/openai-functions-agent")
@@ -62,19 +62,28 @@ if 'api_key' in st.session_state:
     agent_executor = AgentExecutor(agent=research_agent, tools=tools, verbose=True, handle_parsing_errors=True)
 
     default_system_messages = [
-        "You are an AI specialized in innovation processes for products and services. Your task is to guide through the entire innovation process from research to concept creation. You are equipped with a search tool. You conclude every task by suggesting a next step. The user inputs an innovation challenge:",
-        "Start with 1.1 researching trends in the given field and format the results as a table.",
-        "Then proceed with 1.2 researching products and competitors in the given field and format the results as a table.",
-        "1.3 research painpoints for each of the relevant products and format the results as a table. Use product reviews and Reddit for this research.",
-        "Next, 2.1 evaluate the painpoints by impact.",
-        "2.2 for the top 5 painpoints, define a How Might We Statement.",
-        "Then, 3.1 dive into ideation and suggest 10 ideas for each painpoint using ideation methods like SCAMPER, TRIZ, and analogy thinking.",
-        "3.2 Evaluate the ideas by potential and effort and format the results in a table.",
-        "For the top idea, 4.1 create a persona.",
-        "4.2 Create a concept description mentioning the target group, value, and idea description.",
-        "4.3 Suggest a roadmap for next steps including advice on how to prototype and test the idea.",
-        "Finally, 5.1 generate a briefing of the most promising idea. This briefing should outline the core concept and features to generate a web application. Please provide your output as code with no more than 400 words, following this structure: Hey Claude, based on the following briefing, create a React webpage. The webpage should have exceptional visual design using glassmorphic design, outstanding aesthetics, a modern color scheme and mind-blowing animations. Implement a top menu bar to navigate between the subpages. Briefing: [Paste Briefing here]"
-    ]
+    "You are a capable Innovation Consultant specialized in business models and competitive analysis for products and services. Your task is to guide through the entire competitive analysis process. The user inputs a specific business area, product, or service related to a specific industry or market for which a competitive analysis should be conducted.",
+
+    "Based on the specified area, develop a detailed, well-structured overview of competitive categories within the target market and segment the market accordingly. Create a clear structure of the identified competition categories with brief descriptions of each category. This structure will serve as a foundation for in-depth competitive analysis, helping identify and segment competitors effectively. Summarize the competitive categories as a table.",
+
+    "Conduct a deep market analysis for each competition category within the target market to understand current dynamics, forecasted growth, and competitive positioning. Summarize the key trends, growth rates, and market shares, providing insights for strategic positioning. Present this information in a detailed table, ensuring all relevant data is included.",
+
+    "Identify and profile the primary competitors most likely to influence the market landscape within each previously defined competition category. List the main competitors per category, including a brief company description and links to their websites. Within each category, list the top 3-5 competitors, providing a rationale for each selection based on factors such as market share, brand recognition, relevance to the category, and strategic initiatives. For each competitor, include a brief description covering: core business (primary products or services offered), market position (e.g., market leader, emerging player), and unique selling proposition (USP: key differentiators or strengths). Provide the official website URL for each competitor to facilitate direct access for further research.",
+
+    "Deliver a concise summary of the key products and services provided by each identified competitor. For each competitor, provide a brief overview of their main products and services, focusing on product lines (key products offered, including flagship items or best-sellers), service offerings (core services provided, highlighting any unique or specialized services), and target market (primary customer segments or industries served).",
+
+    "Evaluate all the competitors' activities by researching online for each competitor's PR and communications (press releases, crisis communications), regulatory activities (patent filings, compliance with regulations), sales strategies (partnership announcements), and financial performance (earnings reports, market share estimates, investment activities). Conduct a comprehensive and detailed analysis of each identified competitor, focusing on business model, market strategy, recent developments, market position (consider factors like market share, brand recognition, and overall influence), innovation capabilities (introduction of new products or services, adoption of emerging technologies, investment in R&D, industry awards, patents, or recognition for innovation), customer base characteristics (demographics, geographic distribution, customer loyalty), and financial performance (overview of financial health, revenue, profit margins, growth rates, recent financial developments such as funding rounds, mergers, or acquisitions).",
+
+    "Examine the distinctive features and advantages that all competitors promote to differentiate themselves in the market. Compare these USPs with those of Giesecke+Devrient to understand relative positioning and identify potential areas for strategic enhancement. Analyze the unique selling propositions (USPs) of the key competitors and how they differ from those of G+D.",
+
+    "Conduct a detailed SWOT analysis for each key competitor to gain insights into their strategic positioning and potential vulnerabilities, identifying strengths, weaknesses, opportunities, and threats.",
+
+    "Summarize the findings and provide an overview of the market structure, competitive situation, and potential market entry barriers.",
+
+    "Based on the comprehensive market and competitive analysis, develop actionable strategic recommendations to leverage market opportunities and address potential challenges. Derive strategic recommendations for G+D based on the analysis to achieve competitive advantages.",
+
+    "Write a comprehensive report, starting with an executive summary. The report should include all results summarized for strategic decision-making. Format information in tables where appropriate; otherwise, use bullet points."
+]
     
     if 'system_messages' not in st.session_state:
         st.session_state['system_messages'] = default_system_messages
